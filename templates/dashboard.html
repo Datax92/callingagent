@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Voice Agent Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Nastaliq+Urdu:wght@500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/dashboard.css">
+</head>
+<body>
+    <header class="navbar">
+        <div class="navbar-inner">
+            <div class="navbar-brand">
+                <span class="navbar-logo" aria-hidden="true">🎙️</span>
+                <h1 class="navbar-title">Voice Agent Dashboard</h1>
+            </div>
+            <nav class="navtabs" aria-label="Main sections">
+                <button type="button" class="navtab active" data-tab="inbound">
+                    <span class="navtab-icon" aria-hidden="true">📋</span>
+                    <span class="navtab-text">
+                        <span class="navtab-label">Dashboard</span>
+                        <span class="navtab-sub">See all inbound calls</span>
+                    </span>
+                </button>
+                <button type="button" class="navtab" data-tab="outbound">
+                    <span class="navtab-icon" aria-hidden="true">📞</span>
+                    <span class="navtab-text">
+                        <span class="navtab-label">Make Calls</span>
+                        <span class="navtab-sub">Call one or more numbers</span>
+                    </span>
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div id="view-inbound" class="view active">
+            <p class="section-label">Inbound Calls</p>
+            <p class="section-help">These are calls that came in from customers. Tap any row to see the full details and listen to the recording.</p>
+
+            <div class="search-bar">
+                <span class="search-icon" aria-hidden="true">🔍</span>
+                <input type="search" class="search-input" id="search-inbound" placeholder="Search by phone number" inputmode="tel" autocomplete="off">
+            </div>
+
+            <div class="list-header" aria-hidden="true">
+                <span class="row-cell row-number">Phone Number</span>
+                <span class="row-cell row-time">Date / Time</span>
+                <span class="row-cell row-duration">Duration</span>
+                <span class="row-cell row-status">Status</span>
+            </div>
+            <div id="grid-inbound" class="deal-list">
+                {{ cards_html | safe }}
+            </div>
+            <p id="empty-inbound" class="empty search-empty" hidden>No calls match that phone number.</p>
+        </div>
+
+        <div id="view-outbound" class="view">
+            <p class="section-label">Make Calls</p>
+
+            <div class="info-banner">
+                <span class="info-banner-icon" aria-hidden="true">ℹ️</span>
+                <p>The agent will call each number below and have the conversation for you. <strong>It cannot negotiate price or offer discounts</strong> — if a customer asks about pricing, a human on your team will need to follow up.</p>
+            </div>
+
+            <div class="dial-card">
+                <label class="dial-label" for="dial-input">Phone number(s) to call</label>
+                <div class="dial-input-row">
+                    <input type="tel" id="dial-input" placeholder="e.g. 03001234567" inputmode="tel" autocomplete="off">
+                    <button type="button" id="dial-add-button">Add</button>
+                </div>
+                <p class="dial-hint">Add numbers one at a time, or paste a whole list separated by commas or new lines. Press Enter to add.</p>
+
+                <div id="dial-chips" class="dial-chips" aria-live="polite"></div>
+
+                <button type="button" id="dial-start-button" class="dial-start-button" disabled>
+                    Call <span id="dial-count">0</span> number<span id="dial-count-plural">s</span>
+                </button>
+                <div id="dial-status" class="dial-status" aria-live="polite"></div>
+            </div>
+
+            <p class="section-label" style="margin-top:28px;">Outbound Call History</p>
+
+            <div class="search-bar">
+                <span class="search-icon" aria-hidden="true">🔍</span>
+                <input type="search" class="search-input" id="search-outbound" placeholder="Search by phone number" inputmode="tel" autocomplete="off">
+            </div>
+
+            <div class="list-header" aria-hidden="true">
+                <span class="row-cell row-number">Phone Number</span>
+                <span class="row-cell row-time">Date / Time</span>
+                <span class="row-cell row-duration">Duration</span>
+                <span class="row-cell row-status">Status</span>
+            </div>
+            <div id="grid-outbound" class="deal-list" data-loaded="false"></div>
+            <p id="empty-outbound" class="empty search-empty" hidden>No calls match that phone number.</p>
+        </div>
+    </main>
+
+    <div id="call-modal-backdrop" class="modal-backdrop">
+        <div class="modal" role="dialog" aria-modal="true" aria-label="Call details">
+            <button type="button" id="call-modal-close" class="modal-close modal-close-fixed" aria-label="Close">&times;</button>
+            <div id="call-modal-body"></div>
+        </div>
+    </div>
+
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

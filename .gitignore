@@ -1,0 +1,57 @@
+# Environment
+.env.local
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+.vscode/
+# Environment example
+.env.example
+
+# Voice models (Piper ONNX files are large)
+voices/
+*.onnx
+
+# Large models
+models/
+*.bin
+*.pt
+*.safetensors
+*.gguf
+*.ggml
+
+# Audio
+*.wav
+*.mp3
+recordings/
+outputs/
+
+# Logs
+*.log
+logs/
+tmp/
+
+# Runtime / generated data
+failed_leads.jsonl
+
+# pytest
+.pytest_cache/
+
+# IDE
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*~
+
+# Docker
+docker_build/
+
+# Jupyter
+*.ipynb_checkpoints/
+.ipynb_version

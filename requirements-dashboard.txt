@@ -1,0 +1,40 @@
+# FastAPI Dashboard — call summary, leads, and follow-up tracking
+# Architecture: single consolidated app server per Urdu_Voicebot_Architecture_Final.md
+#
+# Verified: installed together with requirements-voice.txt in one clean
+# Python 3.12 .venv on 2026-07-24 — pip resolved all of it with zero conflicts.
+# Also verified for Python 3.13 on Windows: every package here has a real
+# cp313-win_amd64 wheel, no source builds required.
+
+# --- Web framework ---
+fastapi==0.139.2
+uvicorn[standard]==0.51.0
+jinja2==3.1.6
+python-multipart==0.0.32
+
+# --- Database (MongoDB Atlas) ---
+motor==3.7.1
+pymongo==4.17.0
+certifi==2026.7.22
+
+# --- Config / validation / HTTP ---
+python-dotenv==1.2.2
+pydantic==2.13.4
+pydantic-settings==2.14.2
+httpx==0.28.1
+
+# --- Call recording archive (Cloudflare R2, S3-compatible) ---
+# Dashboard needs this to generate signed/public URLs for recordings on
+# per-call click-through (see architecture §4.7 / §4.8)
+boto3==1.43.55
+
+# --- Outbound calling ("Make Calls" screen) ---
+# Used to dispatch the voice agent into a room for outbound dials
+# (routers/outbound.py). Previously imported lazily with a soft ImportError
+# fallback but never actually pinned anywhere -- added here so it's really
+# present in the built image instead of only working if someone happened to
+# `pip install` it by hand.
+livekit-api==1.1.1
+
+# --- Health checks / outbound webhooks (e.g. Slack) ---
+requests==2.34.2

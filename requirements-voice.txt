@@ -1,0 +1,42 @@
+# Voice Agent — LiveKit Agents SDK + Deepgram STT + GROQ LLM + Piper TTS
+# Architecture: Urdu_Voicebot_Architecture_Final.md (API + RAG + System Prompt)
+#
+# Verified: installed together with requirements-dashboard.txt in one clean
+# Python 3.12 .venv on 2026-07-24 — pip resolved all of it with zero conflicts.
+# Also verified for Python 3.13 on Windows: every package here (including
+# onnxruntime and piper-tts, the two most likely to lag on wheel availability)
+# has a real cp313-win_amd64 wheel — confirmed no source builds required, so
+# this installs cleanly in a local .venv on Windows/Python 3.13.
+# Bump as a group, not line-by-line (re-run `pip install -r requirements.txt`
+# in a clean venv and confirm no resolver errors before committing new pins).
+
+# --- Voice orchestration (LiveKit Agents SDK) ---
+# Includes VAD (Silero) + end-of-turn detection, used for clean STT->LLM turn timing
+livekit-agents[silero,turn-detector]==1.6.6
+
+# --- Speech-to-Text (Deepgram Nova-3, streaming Urdu) ---
+# Replaces the old standalone `deepgram-sdk` — this plugin wraps LiveKit's
+# streaming session lifecycle around Deepgram's API directly, no separate client needed
+livekit-plugins-deepgram==1.6.6
+
+# --- LLM inference (GROQ Cloud API) ---
+# Groq's chat-completions endpoint is OpenAI-compatible; this plugin pulls in
+# `openai` as a transitive dependency to talk to it (expected, not a mistake).
+# The standalone `groq` SDK is NOT needed — the agent code talks to Groq only
+# through this plugin's own pooled client, it never imports `groq` directly.
+livekit-plugins-groq==1.6.6
+
+# --- Text-to-Speech (Piper, local/CPU, ur_PK-fasih-medium voice) ---
+piper-tts==1.6.0
+onnxruntime==1.27.0
+
+# --- Call recording archive (Cloudflare R2, S3-compatible) ---
+# NOTE: the old `cloudflare-r2` PyPI package (last released as a 0.0.x stub) is
+# not a maintained R2 client. R2 is S3-API-compatible, so boto3 is the correct,
+# actively maintained way to talk to it — this replaces that dependency.
+boto3==1.43.55
+
+# --- Config / HTTP utilities ---
+python-dotenv==1.2.2
+httpx==0.28.1
+typing-extensions==4.16.0

@@ -1,0 +1,59 @@
+# Docker ignore file — keep the build context lean and fast
+
+# Git / version control
+.git
+.gitignore
+
+# Python caches
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.egg-info
+*.egg
+*.dist-info
+*.whl
+
+# Logs
+*.log
+logs/
+failed_leads.jsonl
+
+# Documentation / notebooks (not needed at runtime)
+*.md
+*.ipynb
+
+# Environment files (secrets live in docker-compose / platform environment variables)
+.env
+.env.local
+.env.local.example
+*.env*
+
+# OS / editor metadata
+.DS_Store
+.vscode
+.idea
+node_modules
+*~
+
+# Virtual environments
+.venv
+.venv2
+.venv3
+.venv4
+venv/
+env/
+
+# Large model / data directories (models/ excluded; voices/ needed for Piper TTS)
+models/
+
+# Test / development folders
+tests/
+docs/
+examples/
+
+# Docker build artefacts
+docker_build/
+
+# Dev-only requirements — never needed inside a built image
+requirements-local.txt

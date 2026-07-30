@@ -1,0 +1,52 @@
+# Dockerfile for Voice Agent
+# Architecture: LiveKit Agents SDK + GROQ API (LLM) + Deepgram Nova-3 Urdu (STT) + Piper TTS
+# See Urdu_Voicebot_Architecture_Final.md — API + RAG + System Prompt, no self-hosted GPU
+FROM python:3.12-slim
+
+# System dependencies for Piper TTS / audio handling
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    libsndfile1 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install Python dependencies (voice-service-only, resolver-verified requirements file)
+COPY requirements-voice.txt .
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements-voice.txt
+
+# Copy application code
+COPY agent.py piper_tts.py rag_utils.py ./
+COPY datax_technologies_approved_rag.jsonl ./
+COPY voices/ /app/voices/
+
+# Health check — import the actual modules agent.py uses at runtime.
+# (agent.py talks to Groq via the openai-compatible plugin, not
+# livekit-plugins-groq, and now also uses livekit.api directly to place
+# outbound SIP calls -- see agent.py's entrypoint().)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD python -c "import livekit.agents; import livekit.api; import livekit.plugins.deepgram; import livekit.plugins.openai; import piper; import boto3; print('OK')"
+
+# Expose port (agent worker health/metrics endpoint, if enabled)
+EXPOSE 8001
+
+# Runtime defaults (overridden by docker-compose / Railway environment variables)
+ENV PYTHONPATH=/app \
+    PYTHONUNBUFFERED=1 \
+    DASHBOARD_WEBHOOK_URL=http://localhost:8000/webhook/lead \
+    DEEPGRAM_API_KEY="" \
+    GROQ_API_KEY="" \
+    GROQ_MODEL=qwen/qwen3.6-27b \
+    PIPER_MODEL_PATH=/app/voices/ur_PK-fasih-medium.onnx \
+    SIP_OUTBOUND_TRUNK_ID="" \
+    CLOUDFLARE_R2_ACCOUNT_ID="" \
+    CLOUDFLARE_R2_ACCESS_KEY_ID="" \
+    CLOUDFLARE_R2_SECRET_ACCESS_KEY="" \
+    CLOUDFLARE_R2_BUCKET_NAME="" \
+    CLOUDFLARE_R2_PUBLIC_URL=""
+
+# Start the voice agent. `start` is required -- the LiveKit Agents CLI
+# (cli.run_app in agent.py) needs an explicit subcommand or it just prints
+# usage and exits, which would crash-loop the container.
+CMD ["python", "agent.py", "start"]

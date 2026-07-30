@@ -1,0 +1,58 @@
+# Urdu Voicebot — combined requirements (consolidated app server)
+# Union of requirements-voice.txt + requirements-dashboard.txt, deduplicated.
+# Used by the root Dockerfile which runs Voice Agent + FastAPI Dashboard together.
+#
+# Verified: all packages below were installed together into a clean Python 3.12
+# .venv and pip's resolver accepted them with zero conflicts (checked 2026-07-24).
+# Also verified: every package + transitive dependency has a real prebuilt wheel
+# for Python 3.13 on Windows (cp313-win_amd64) — no source builds needed, so this
+# installs cleanly in a local `.venv` on Python 3.13/Windows too (confirmed via
+# `pip download --python-version 313 --platform win_amd64 --implementation cp
+# --abi cp313`, which resolved every package with no sdist fallback).
+# Deployment (Docker) targets Linux via python:3.12-slim regardless of local
+# interpreter — see Dockerfile / Dockerfile.voice — so this same pinned set
+# works for both local Windows/3.13 dev and Linux/3.12 production containers.
+# Bump as a group — re-run `pip install -r requirements.txt` in a clean venv and
+# confirm no resolver errors before committing new pins.
+
+# --- Voice orchestration (LiveKit Agents SDK) ---
+livekit-agents[silero,turn-detector]==1.6.6
+
+# --- Speech-to-Text (Deepgram Nova-3, streaming Urdu) ---
+livekit-plugins-deepgram==1.6.6
+
+# --- LLM inference (GROQ Cloud API) ---
+# Talks to Groq only through this plugin's own pooled client; the standalone
+# `groq` SDK is not imported anywhere and isn't needed.
+livekit-plugins-groq==1.6.6
+
+# --- Text-to-Speech (Piper, local/CPU, ur_PK-fasih-medium voice) ---
+piper-tts==1.6.0
+onnxruntime==1.27.0
+
+# --- Web framework / Dashboard ---
+fastapi==0.139.2
+uvicorn[standard]==0.51.0
+jinja2==3.1.6
+python-multipart==0.0.32
+
+# --- Database (MongoDB Atlas) ---
+motor==3.7.1
+pymongo==4.17.0
+certifi==2026.7.22
+
+# --- Config / validation / HTTP ---
+python-dotenv==1.2.2
+pydantic==2.13.4
+pydantic-settings==2.14.2
+httpx==0.28.1
+typing-extensions==4.16.0
+
+# --- Call recording archive (Cloudflare R2, S3-compatible) ---
+boto3==1.43.55
+
+# --- Outbound calling ("Make Calls" screen + agent.py's SIP dial-out) ---
+livekit-api==1.1.1
+
+# --- Health checks / outbound webhooks ---
+requests==2.34.2

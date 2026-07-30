@@ -1,0 +1,19 @@
+# Local development requirements
+# Installs the same pinned stack as production (requirements.txt) so local
+# testing can't silently drift from what's deployed, plus a couple of
+# dev-only conveniences.
+#
+# NOTE: the previous version of this file duplicated every package pin by
+# hand, which is exactly how local/prod version drift happens. Referencing
+# requirements.txt directly guarantees they can never disagree.
+#
+# Verified for Python 3.13 on Windows: requirements.txt plus the dev tools
+# below all have real cp313-win_amd64 wheels — safe to `pip install -r
+# requirements-local.txt` directly inside a Python 3.13 .venv on Windows.
+
+-r requirements.txt
+
+# --- Local dev conveniences (not needed in production images) ---
+ipython==9.15.0
+pytest==9.1.1
+pytest-asyncio==1.4.0
