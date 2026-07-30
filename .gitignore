@@ -13,6 +13,7 @@ env/
 # Environment example
 .env.example
 deployment-guide.md
+.env.local
 
 # Voice models (Piper ONNX files are large)
 voices/
