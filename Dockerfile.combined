@@ -1,0 +1,38 @@
+# Combined Dockerfile — Dashboard + Voice Agent in one container
+# Uses supervisor to run both uvicorn (dashboard) and the agent worker
+FROM python:3.12-slim
+
+# System dependencies for Piper TTS / audio handling + supervisor
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    ffmpeg \
+    libsndfile1 \
+    supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Install ALL Python dependencies (dashboard + voice, verified compatible)
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r requirements.txt
+
+# Application code — everything
+COPY app.py config.py db.py models.py notifications.py phone.py rendering.py piper_tts.py rag_utils.py ./
+COPY agent.py ./
+COPY routers/ ./routers/
+COPY templates/ ./templates/
+COPY static/ ./static/
+COPY datax_technologies_approved_rag.jsonl ./
+COPY voices/ /app/voices/
+
+# Supervisor config — runs uvicorn + agent together
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+EXPOSE 8000
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
+
+# Supervisor starts both processes
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

@@ -1,96 +1,43 @@
-# Docker Compose for Urdu Voicebot
-# Architecture: LiveKit Cloud + GROQ API (LLM) + Deepgram Nova-3 Urdu (STT) + Piper TTS + FastAPI Dashboard
-# MongoDB Atlas is managed externally in production. See Urdu_Voicebot_Architecture_Final.md.
-
+# Docker Compose — Combined Dashboard + Voice Agent in one container
+# Single service, supervisor manages both processes internally
 version: '3.8'
 
 services:
-  voice-agent:
+  urdu-voicebot:
     build:
       context: .
-      dockerfile: Dockerfile.voice
-    container_name: urdu-voicebot-agent
+      dockerfile: Dockerfile.combined
+    container_name: urdu-voicebot-combined
     environment:
-      # LiveKit Cloud (for telephony)
+      # MongoDB Atlas
+      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_DATABASE=${MONGODB_DATABASE:-voice_agent_db}
+      - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-http://localhost:8000}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
+      - MAX_BULK_CALL_NUMBERS=${MAX_BULK_CALL_NUMBERS:-25}
+
+      # LiveKit Cloud (shared by dashboard + agent)
       - LIVEKIT_URL=${LIVEKIT_URL}
       - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
       - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
-      # SIP trunk used to dial out on outbound calls (agent.py places the
-      # SIP participant itself once dispatched into a room — see entrypoint())
       - SIP_OUTBOUND_TRUNK_ID=${SIP_OUTBOUND_TRUNK_ID}
-      # Must match the dashboard's VOICE_AGENT_NAME below — the dashboard
-      # dispatches agents by this name when placing an outbound call
       - VOICE_AGENT_NAME=${VOICE_AGENT_NAME:-urdu-voicebot}
 
-      # GROQ API (LLM) — confirm this SKU is still current in the Groq model
-      # catalog before each deploy; Groq deprecates/renames models with notice
+      # Dashboard Webhook (agent posts here; supervisor ensures both processes
+      # share localhost so the URL is just http://localhost:8000/webhook/lead)
+      - DASHBOARD_WEBHOOK_URL=http://localhost:8000/webhook/lead
+
+      # GROQ LLM
       - GROQ_API_KEY=${GROQ_API_KEY}
       - GROQ_MODEL=${GROQ_MODEL:-qwen/qwen3.6-27b}
 
-      # Deepgram (STT)
+      # Deepgram STT
       - DEEPGRAM_API_KEY=${DEEPGRAM_API_KEY}
 
-      # Piper TTS (local)
-      - PIPER_MODEL_PATH=${PIPER_MODEL_PATH:-/app/voices/ur_PK-fasih-medium.onnx}
+      # Piper TTS (model copied into image at /app/voices/)
+      - PIPER_MODEL_PATH=/app/voices/ur_PK-fasih-medium.onnx
 
-      # Dashboard Webhook (receives lead data)
-      - DASHBOARD_WEBHOOK_URL=${DASHBOARD_WEBHOOK_URL:-http://fastapi-dashboard:8000/webhook/lead}
-
-      # Cloudflare R2 (call recordings archive, S3-compatible — accessed via boto3)
-      - CLOUDFLARE_R2_ACCOUNT_ID=${CLOUDFLARE_R2_ACCOUNT_ID}
-      - CLOUDFLARE_R2_ACCESS_KEY_ID=${CLOUDFLARE_R2_ACCESS_KEY_ID}
-      - CLOUDFLARE_R2_SECRET_ACCESS_KEY=${CLOUDFLARE_R2_SECRET_ACCESS_KEY}
-      - CLOUDFLARE_R2_BUCKET_NAME=${CLOUDFLARE_R2_BUCKET_NAME}
-      - CLOUDFLARE_R2_PUBLIC_URL=${CLOUDFLARE_R2_PUBLIC_URL}
-    volumes:
-      # Mount voice model (Piper ONNX files)
-      - ./voices:/app/voices:ro
-      # Mount knowledge base (RAG source — filtered lookup, <500 tok/turn)
-      - ./datax_technologies_approved_rag.jsonl:/app/datax_technologies_approved_rag.jsonl:ro
-    restart: unless-stopped
-    healthcheck:
-      # NOTE: this overrides Dockerfile.voice's own HEALTHCHECK instruction,
-      # so it has to be kept in sync by hand. Previously this checked
-      # `import groq` -- but the standalone groq SDK is deliberately not
-      # installed (agent.py talks to Groq via the openai-compatible plugin),
-      # so that import always failed, the container was permanently
-      # "unhealthy", and fastapi-dashboard (which waits on
-      # condition: service_healthy below) could never start.
-      test: ["CMD", "python", "-c", "import livekit.agents; import livekit.api; import livekit.plugins.deepgram; import livekit.plugins.openai; print('OK')"]
-      interval: 30s
-      timeout: 10s
-      start_period: 10s
-      retries: 3
-
-  fastapi-dashboard:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: urdu-voicebot-dashboard
-    environment:
-      # MongoDB Atlas (managed service)
-      - MONGODB_URI=${MONGODB_URI}
-      - MONGODB_DATABASE=${MONGODB_DATABASE:-voice_agent_db}
-
-      # Dashboard UI
-      - PUBLIC_BASE_URL=${PUBLIC_BASE_URL:-http://localhost:8000}
-      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL}
-      # Highest number of phone numbers accepted at once on the "Make Calls" screen
-      - MAX_BULK_CALL_NUMBERS=${MAX_BULK_CALL_NUMBERS:-25}
-
-      # Dashboard Webhook URL (shared with voice-agent)
-      - DASHBOARD_WEBHOOK_URL=${DASHBOARD_WEBHOOK_URL:-http://fastapi-dashboard:8000/webhook/lead}
-
-      # LiveKit Cloud — the dashboard needs its own copy of these to dispatch
-      # the voice agent when someone places an outbound call from the
-      # "Make Calls" screen (see routers/outbound.py)
-      - LIVEKIT_URL=${LIVEKIT_URL}
-      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
-      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
-      - SIP_OUTBOUND_TRUNK_ID=${SIP_OUTBOUND_TRUNK_ID}
-      - VOICE_AGENT_NAME=${VOICE_AGENT_NAME:-urdu-voicebot}
-
-      # Cloudflare R2 (dashboard generates recording URLs on per-call click-through)
+      # Cloudflare R2 (recordings archive)
       - CLOUDFLARE_R2_ACCOUNT_ID=${CLOUDFLARE_R2_ACCOUNT_ID}
       - CLOUDFLARE_R2_ACCESS_KEY_ID=${CLOUDFLARE_R2_ACCESS_KEY_ID}
       - CLOUDFLARE_R2_SECRET_ACCESS_KEY=${CLOUDFLARE_R2_SECRET_ACCESS_KEY}
@@ -99,12 +46,9 @@ services:
     ports:
       - "8000:8000"
     restart: unless-stopped
-    depends_on:
-      voice-agent:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
-      start_period: 5s
+      start_period: 15s
       retries: 3
