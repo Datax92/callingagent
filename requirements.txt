@@ -52,7 +52,7 @@ typing-extensions==4.16.0
 boto3==1.43.55
 
 # --- Outbound calling ("Make Calls" screen + agent.py's SIP dial-out) ---
-livekit-api==1.4.0
+livekit-api==1.2.0
 
 # --- Health checks / outbound webhooks ---
 requests==2.34.2

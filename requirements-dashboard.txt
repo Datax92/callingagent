@@ -34,7 +34,7 @@ boto3==1.43.55
 # fallback but never actually pinned anywhere -- added here so it's really
 # present in the built image instead of only working if someone happened to
 # `pip install` it by hand.
-livekit-api==1.4.0
+livekit-api==1.2.0
 
 # --- Health checks / outbound webhooks (e.g. Slack) ---
 requests==2.34.2
