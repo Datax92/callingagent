@@ -31,10 +31,17 @@ COPY datax_technologies_approved_rag.jsonl ./datax_technologies_approved_rag.jso
 # Supervisor configuration - runs both dashboard and voice agent
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Create voices directory
+# Download Piper Urdu voice model (ur_PK-fasih-medium).
+# PiperVoice.load() requires BOTH the .onnx weights and its .onnx.json
+# config sidecar file to sit side-by-side — without this step,
+# PIPER_MODEL_PATH points at a file that never existed in the image,
+# and every call fails inside PiperTTS.__init__ before the agent joins audio.
 RUN mkdir -p /app/voices && \
-    touch /app/voices/.gitkeep && \
-    chmod 644 /app/voices/.gitkeep
+    curl -fL -o /app/voices/ur_PK-fasih-medium.onnx \
+      https://huggingface.co/rhasspy/piper-voices/resolve/main/ur/ur_PK/fasih/medium/ur_PK-fasih-medium.onnx && \
+    curl -fL -o /app/voices/ur_PK-fasih-medium.onnx.json \
+      https://huggingface.co/rhasspy/piper-voices/resolve/main/ur/ur_PK/fasih/medium/ur_PK-fasih-medium.onnx.json && \
+    chmod 644 /app/voices/ur_PK-fasih-medium.onnx /app/voices/ur_PK-fasih-medium.onnx.json
 
 # Set up log directories
 RUN mkdir -p /var/log/supervisor && \
