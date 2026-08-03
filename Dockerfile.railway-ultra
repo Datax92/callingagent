@@ -1,23 +1,20 @@
-# Final Railway-Optimized Dockerfile
-# Minimal, robust, and tested for Railway deployment
+# Ultra Minimal Railway Dockerfile
+# Removes all extra dependencies to reduce build failures
 FROM python:3.12-slim
 
 WORKDIR /app
 
-# Install only essential system dependencies
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends ca-certificates curl ffmpeg libsndfile1 supervisor && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+# Install ONLY essential dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl ffmpeg libsndfile1 && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Upgrade pip
-RUN pip install --no-cache-dir --upgrade pip==25.0
-
-# Install Python dependencies
+# PYTHON PACKAGE INSTALLATION
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt || \
+    pip install --no-cache-dir -r requirements.txt  # Retry if needed
 
-# Copy application
+# COPY APPLICATION FILES
 COPY app.py config.py db.py models.py notifications.py phone.py rendering.py piper_tts.py rag_utils.py agent.py latency_metrics.py ./
 COPY routers/ ./routers/
 COPY templates/ ./templates/
@@ -25,14 +22,16 @@ COPY static/ ./static/
 COPY datax_technologies_approved_rag.jsonl ./datax_technologies_approved_rag.jsonl
 COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Setup directories
+# FILE SYSTEM SETUP
 RUN mkdir -p /app/voices /var/log/supervisor && \
     touch /app/voices/.gitkeep /var/log/supervisor/supervisord.log && \
     chmod 644 /app/voices/.gitkeep /var/log/supervisor/*.log
 
 EXPOSE 8000
 
+# HEALTHCHECK WITH RETRY
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD timeout 5 curl -f http://localhost:8000/health || exit 1
+    CMD curl -f http://localhost:8000/health || exit 1
 
+# START SUPERVISOR
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
