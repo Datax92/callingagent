@@ -1,0 +1,54 @@
+# Consolidated Dockerfile — Optimized for Railway
+# Single container running both FastAPI dashboard and LiveKit voice agent via supervisor
+FROM python:3.12-slim AS base
+
+# Configure timezone and locale
+ENV TZ=UTC \
+    LANG=C.UTF-8
+
+WORKDIR /app
+
+# Install system dependencies (minimal set for optimal performance)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    ffmpeg \
+    libsndfile1 \
+    supervisor \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Upgrade pip in a separate layer for better caching
+RUN pip install --no-cache-dir --upgrade pip==25.0
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY app.py config.py db.py models.py notifications.py phone.py rendering.py piper_tts.py rag_utils.py agent.py latency_metrics.py ./
+COPY routers/ ./routers/
+COPY templates/ ./templates/
+COPY static/ ./static/
+COPY datax_technologies_approved_rag.jsonl ./datax_technologies_approved_rag.jsonl
+
+# Create and configure supervisor
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+RUN mkdir -p /var/log/supervisor && \
+    touch /var/log/supervisor/supervisord.log && \
+    touch /var/log/supervisor/dashboard.stdout.log && \
+    touch /var/log/supervisor/dashboard.stderr.log && \
+    touch /var/log/supervisor/voice-agent.stdout.log && \
+    touch /var/log/supervisor/voice-agent.stderr.log
+
+# Set permissions for logs
+RUN chmod 644 /var/log/supervisor/*.log
+
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# Start supervisor
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
