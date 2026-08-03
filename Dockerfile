@@ -1,50 +1,38 @@
-# Dockerfile for the FastAPI Dashboard
-# Architecture: single consolidated app server per Urdu_Voicebot_Architecture_Final.md
-# See README.md for the module layout (config.py, db.py, routers/, etc.)
+# Consolidated Dockerfile — Dashboard + Voice Agent (Combined Service)
+# Single container running both FastAPI dashboard and LiveKit voice agent via supervisor
 FROM python:3.12-slim
 
-# curl is needed for this image's own HEALTHCHECK / docker-compose healthcheck
+# Update system dependencies (includes curl for health check, ffmpeg/supervisor for audio/agent)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
+    ffmpeg \
+    libsndfile1 \
+    supervisor \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Install Python dependencies (dashboard-only, resolver-verified requirements file)
-COPY requirements-dashboard.txt .
+# Install all Python dependencies (dashboard + voice agent)
+COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
-    && pip install --no-cache-dir -r requirements-dashboard.txt
+    && pip install --no-cache-dir -r requirements.txt
 
-# Application code — modular dashboard package
-COPY app.py config.py db.py models.py notifications.py phone.py rendering.py ./
+# Copy application code
+COPY app.py config.py db.py models.py notifications.py phone.py rendering.py piper_tts.py rag_utils.py agent.py latency_metrics.py ./
 COPY routers/ ./routers/
 COPY templates/ ./templates/
 COPY static/ ./static/
+COPY datax_technologies_approved_rag.jsonl ./datax_technologies_approved_rag.jsonl
+COPY voices/ /app/voices/
+
+# Supervisor configuration - runs both dashboard and voice agent
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
 EXPOSE 8000
 
-# Runtime defaults (overridden by docker-compose / Railway environment variables)
-ENV PYTHONPATH=/app \
-    PYTHONUNBUFFERED=1 \
-    MONGODB_URI="" \
-    MONGODB_DATABASE=voice_agent_db \
-    PUBLIC_BASE_URL=http://localhost:8000 \
-    SLACK_WEBHOOK_URL="" \
-    # Needed for the "Make Calls" screen to dispatch the voice agent
-    LIVEKIT_URL="" \
-    LIVEKIT_API_KEY="" \
-    LIVEKIT_API_SECRET="" \
-    SIP_OUTBOUND_TRUNK_ID="" \
-    VOICE_AGENT_NAME=urdu-voicebot \
-    MAX_BULK_CALL_NUMBERS=25 \
-    # Cloudflare R2 (dashboard generates recording URLs on per-call click-through)
-    CLOUDFLARE_R2_ACCOUNT_ID="" \
-    CLOUDFLARE_R2_ACCESS_KEY_ID="" \
-    CLOUDFLARE_R2_SECRET_ACCESS_KEY="" \
-    CLOUDFLARE_R2_BUCKET_NAME="" \
-    CLOUDFLARE_R2_PUBLIC_URL=""
-
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+# Health check - tests the dashboard endpoint
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
     CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
 
-CMD exec uvicorn app:app --host 0.0.0.0 --port ${PORT:-8000}
+# Supervisor starts both processes (dashboard on port 8000, voice agent inside)
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

@@ -1,12 +1,13 @@
-# Docker Compose — Combined Dashboard + Voice Agent in one container
+# Docker Compose — Combined Dashboard + Voice Agent
 # Single service, supervisor manages both processes internally
+# Uses consolidated Dockerfile (Dockerfile) instead of split Dockerfiles
 version: '3.8'
 
 services:
   urdu-voicebot:
     build:
       context: .
-      dockerfile: Dockerfile.combined
+      dockerfile: Dockerfile
     container_name: urdu-voicebot-combined
     environment:
       # MongoDB Atlas
@@ -20,10 +21,10 @@ services:
       - LIVEKIT_URL=${LIVEKIT_URL}
       - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
       - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
-      - SIP_OUTBOUND_TRUNK_ID=${SIP_OUTBOUND_TRUNK_ID}
+      - SIP_OUTBOUND_TRUNK_ID=${SIP_OUTBOUND_TRUNK_ID:-}  # Empty since no SIP trunk
       - VOICE_AGENT_NAME=${VOICE_AGENT_NAME:-urdu-voicebot}
 
-      # Dashboard Webhook (agent posts here; supervisor ensures both processes
+      # Dashboard Webhook (agent posts here; supervisor ensures both services
       # share localhost so the URL is just http://localhost:8000/webhook/lead)
       - DASHBOARD_WEBHOOK_URL=http://localhost:8000/webhook/lead
 
