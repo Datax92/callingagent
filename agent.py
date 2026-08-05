@@ -457,7 +457,6 @@ async def entrypoint(ctx: JobContext):
         model=GROQ_MODEL,
         temperature=0.7,
         max_completion_tokens=300,
-        extra_body={"reasoning_effort": "none"},
     )
 
     session = AgentSession[CallState](
