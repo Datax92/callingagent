@@ -129,7 +129,7 @@ SYSTEM_PROMPT_APPROACHABLE = """آپ ڈیٹا ایکس ٹیکنالوجیز کی
 • اگر گفتگو میں کہیں "Reference information" کے عنوان سے اضافی معلومات فراہم کی جائیں تو انہیں گاہک کے سوال کا درست اور مصدقہ جواب دینے کے لیے پس منظر کی معلومات کے طور پر استعمال کریں۔
 • یہ معلومات لفظ بہ لفظ نہ دہرائیں — انہیں اپنے فطری، گفتگو والے انداز میں مختصر جواب کا حصہ بنائیں۔"""
 
-RUNTIME_SYSTEM_PROMPT = SYSTEM_PROMPT_APPROACHABLE
+RUNTIME_SYSTEM_PROMPT = os.getenv("SYSTEM_PROMPT", "").strip() or SYSTEM_PROMPT_APPROACHABLE
 
 
 class CallState:
