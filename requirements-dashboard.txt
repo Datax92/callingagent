@@ -23,9 +23,6 @@ pydantic==2.13.4
 pydantic-settings==2.14.2
 httpx==0.28.1
 
-# --- Timezone (Pakistan Standard Time) ---
-pytz==2026.2
-
 # --- Call recording archive (Cloudflare R2, S3-compatible) ---
 # Dashboard needs this to generate signed/public URLs for recordings on
 # per-call click-through (see architecture §4.7 / §4.8)

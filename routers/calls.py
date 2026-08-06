@@ -6,21 +6,21 @@ page to refresh when something changes.
 import asyncio
 import json
 import time
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
-import pytz
 
 from models import StatusUpdate
 from rendering import render_cards_html
 
 router = APIRouter()
 
-# Pakistan Standard Time (UTC+5)
-# TZ=Asia/Karachi
-karachi_tz = pytz.timezone('Asia/Karachi')
+# Pakistan Standard Time (UTC+5, Asia/Karachi).
+# Fixed-offset tzinfo so timestamps render correctly regardless of the
+# container's system timezone, with no extra dependency (pytz/tzdata).
+PAKISTAN_TZ = timezone(timedelta(hours=5), name="Asia/Karachi")
 
 # ---------------------------------------------------------------------------
 # Simple pub/sub bus for SSE events
@@ -102,7 +102,7 @@ async def get_call_detail(call_id: str, request: Request):
     if not doc:
         raise HTTPException(status_code=404, detail="Call not found")
     doc["_id"] = str(doc["_id"])
-    doc["created_at_display"] = time.strftime("%b %d, %Y -- %H:%M", time.localtime(doc.get("created_at", 0) + 5*3600))  # UTC+5 (Pakistan Time)
+    doc["created_at_display"] = datetime.fromtimestamp(doc.get("created_at", 0), tz=PAKISTAN_TZ).strftime("%b %d, %Y -- %H:%M")  # Pakistan Time
     return JSONResponse(doc)
 
 

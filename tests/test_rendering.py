@@ -1,6 +1,7 @@
 """Tests for HTML card rendering (rendering.py)."""
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -9,7 +10,7 @@ if str(PROJECT_ROOT) not in sys.path:
 
 import pytest
 
-from rendering import render_card, render_cards_html, _format_duration
+from rendering import PAKISTAN_TZ, render_card, render_cards_html, _format_duration
 
 
 # ---------------------------------------------------------------------------
@@ -128,10 +129,10 @@ class TestRenderCard:
         assert 'class="business-name"' not in html
 
     def test_timestamp_formatted(self):
-        """Timestamp is rendered as 'Mon DD, HH:MM' format."""
+        """Timestamp is rendered as 'Mon DD, HH:MM' format in Pakistan time."""
         doc = self._make_doc({"created_at": 1700000000.0})
         html = render_card(doc)
-        expected = time.strftime("%b %d, %H:%M", time.localtime(1700000000.0))
+        expected = datetime.fromtimestamp(1700000000.0, tz=PAKISTAN_TZ).strftime("%b %d, %H:%M")
         assert expected in html
 
     def test_duration_shown(self):
