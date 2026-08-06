@@ -102,7 +102,7 @@ pip install -r requirements-local.txt   # installs requirements.txt + dev tools
 cp .env.local.example .env.local        # fill in real values
 
 # Terminal 1
-uvicorn app:app --reload
+uvicorn app:app --host 0.0.0.0 --port 8000
 
 # Terminal 2
 python agent.py dev
