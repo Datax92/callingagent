@@ -2,7 +2,12 @@
 Turns a call document into the small "card" HTML shown on the dashboard grid.
 """
 import time
+import pytz
 from phone import text_dir_attrs
+
+# Pakistan Standard Time (UTC+5)
+# TZ=Asia/Karachi
+karachi_tz = pytz.timezone('Asia/Karachi')
 
 STATUS_META = {
     "dialing":  {"label": "Dialing...", "class": "st-dialing"},
@@ -20,7 +25,10 @@ def _format_duration(seconds) -> str:
 
 def render_card(doc) -> str:
     call_id = str(doc["_id"])
-    ts = time.strftime("%b %d, %H:%M", time.localtime(doc.get("created_at", 0)))
+    # Convert UTC timestamp to Pakistan Standard Time (UTC+5)
+    utc_timestamp = doc.get("created_at", 0)
+    karachi_timestamp = utc_timestamp + 5*3600  # UTC+5
+    ts = time.strftime("%b %d, %H:%M", time.localtime(karachi_timestamp))
     status = doc.get("status", "new")
     meta = STATUS_META.get(status, STATUS_META["new"])
     direction = doc.get("call_direction", "inbound")
